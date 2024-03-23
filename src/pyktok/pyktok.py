@@ -35,30 +35,30 @@ class BrowserNotSpecifiedError(Exception):
         super().__init__(runsb_err)
 
 import pickle
-from http.cookiejar import Cookie
+from http.cookiejar import Cookie, CookieJar
 
 import browser_cookie3
 import pickle
 import base64
 import os
 
-def specify_browser(browser):
+def specify_browser(browser=None):
     global cookies
     cookies_string = os.environ.get('COOKIES_STRING', False)
     if cookies_string:
-        print('load cookies from environment variable')
+        print('Load cookies from environment variable')
         # Decode the cookies string from base64
         cookies_bytes = base64.b64decode(cookies_string)
         # Deserialize the cookies bytes to a dictionary
         cookies_dict = pickle.loads(cookies_bytes)
         
-        # Convert the cookies dictionary back to a CookieJar object
-        loaded_cookies = browser_cookie3.chrome(domain_name='www.tiktok.com')
+        # Create a new CookieJar object
+        loaded_cookies = CookieJar()
         for name, value in cookies_dict.items():
             loaded_cookies.set_cookie(Cookie(version=0, name=name, value=value, port=None, port_specified=False, domain='www.tiktok.com', domain_specified=True, domain_initial_dot=False, path='/', path_specified=True, secure=True, expires=None, discard=True, comment=None, comment_url=None, rest={'HttpOnly': None}, rfc2109=False))
         cookies = loaded_cookies
     else:
-        print('pull cookies from chrome and save as environment variable')
+        print('Pull cookies from Chrome and save as environment variable')
         cookies = getattr(browser_cookie3, browser)(domain_name='www.tiktok.com')
         
         # Convert CookieJar to a dictionary
