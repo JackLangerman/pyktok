@@ -34,9 +34,47 @@ class BrowserNotSpecifiedError(Exception):
     def __init__(self):
         super().__init__(runsb_err)
 
+import pickle
+from http.cookiejar import Cookie
+
+import browser_cookie3
+import pickle
+import base64
+import os
+
 def specify_browser(browser):
     global cookies
-    cookies = getattr(browser_cookie3,browser)(domain_name='www.tiktok.com')
+    cookies_string = os.environ.get('COOKIES_STRING', False)
+    if cookies_string:
+        print('load cookies from environment variable')
+        # Decode the cookies string from base64
+        cookies_bytes = base64.b64decode(cookies_string)
+        # Deserialize the cookies bytes to a dictionary
+        cookies_dict = pickle.loads(cookies_bytes)
+        
+        # Convert the cookies dictionary back to a CookieJar object
+        loaded_cookies = browser_cookie3.chrome(domain_name='www.tiktok.com')
+        for name, value in cookies_dict.items():
+            loaded_cookies.set_cookie(Cookie(version=0, name=name, value=value, port=None, port_specified=False, domain='www.tiktok.com', domain_specified=True, domain_initial_dot=False, path='/', path_specified=True, secure=True, expires=None, discard=True, comment=None, comment_url=None, rest={'HttpOnly': None}, rfc2109=False))
+        cookies = loaded_cookies
+    else:
+        print('pull cookies from chrome and save as environment variable')
+        cookies = getattr(browser_cookie3, browser)(domain_name='www.tiktok.com')
+        
+        # Convert CookieJar to a dictionary
+        cookies_dict = {}
+        for cookie in cookies:
+            cookies_dict[cookie.name] = cookie.value
+        
+        # Serialize the cookies dictionary to bytes
+        cookies_bytes = pickle.dumps(cookies_dict)
+        # Encode the cookies bytes to a base64 string
+        cookies_string = base64.b64encode(cookies_bytes).decode('utf-8')
+        # print(f"Set the following as your COOKIES_STRING environment variable:\n{cookies_string}")
+        with open('cookie.txt', 'w') as f:
+            f.write(cookies_string)
+        
+        
     
 def deduplicate_metadata(metadata_fn,video_df,dedup_field='video_id'):
     if os.path.exists(metadata_fn):
